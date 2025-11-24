@@ -497,13 +497,189 @@ Here's the information about {self.name}:"
 
 if __name__ == "__main__":
     me = Me()
-    gr.ChatInterface(
+
+    # Create custom Neo-Memphis Retro Digital theme
+    neo_memphis_theme = gr.themes.Base(
+        primary_hue=gr.themes.colors.pink,      # Hot pink for interactive elements
+        secondary_hue=gr.themes.colors.yellow,  # Sunshine yellow for accents
+        neutral_hue=gr.themes.colors.cyan,      # Bright cyan for backgrounds
+        spacing_size=gr.themes.sizes.spacing_lg,
+        radius_size=gr.themes.sizes.radius_md,
+        text_size=gr.themes.sizes.text_md,
+        font=gr.themes.GoogleFont("Poppins"),
+        font_mono=gr.themes.GoogleFont("IBM Plex Mono")
+    )
+
+    # Custom CSS for Neo-Memphis styling
+    custom_css = """
+    /* Grid background pattern on main container */
+    body, .gradio-container {
+        background:
+            linear-gradient(90deg, rgba(0, 0, 0, 0.05) 1px, transparent 1px),
+            linear-gradient(rgba(0, 0, 0, 0.05) 1px, transparent 1px);
+        background-size: 40px 40px;
+        background-color: #80D8E8 !important;
+    }
+
+    /* Main chat container with white background and bold border */
+    .contain, .chatbot {
+        background: #FFFFFF !important;
+        border: 4px solid #000000 !important;
+        box-shadow: 6px 6px 0px #000000 !important;
+        border-radius: 12px !important;
+    }
+
+    /* Chat message bubbles with bold outlines */
+    .message-row, .message {
+        border: 3px solid #000000 !important;
+        box-shadow: 4px 4px 0px #000000 !important;
+        background: #FFFFFF !important;
+        border-radius: 12px !important;
+        padding: 16px !important;
+        margin: 8px 0 !important;
+    }
+
+    /* User messages with coral/peach accent */
+    .user .message, .user.message {
+        background: linear-gradient(135deg, #FFE5E5 0%, #FFD4D4 100%) !important;
+        border-color: #000000 !important;
+    }
+
+    /* Bot messages with white background */
+    .bot .message, .bot.message {
+        background: #FFFFFF !important;
+    }
+
+    /* All buttons get bold borders */
+    button {
+        border: 3px solid #000000 !important;
+        font-weight: 600 !important;
+        transition: all 0.2s ease !important;
+        box-shadow: 3px 3px 0px #000000 !important;
+        border-radius: 10px !important;
+    }
+
+    button:hover {
+        transform: translate(-2px, -2px) !important;
+        box-shadow: 5px 5px 0px #000000 !important;
+    }
+
+    /* Example buttons with sunshine yellow */
+    .examples button, button.secondary {
+        background: #FFD700 !important;
+        color: #000000 !important;
+    }
+
+    .examples button:hover, button.secondary:hover {
+        background: #FFC700 !important;
+    }
+
+    /* Primary buttons (send, submit) with hot pink */
+    button.primary, .submit-btn, button[type="submit"] {
+        background: #FF1493 !important;
+        color: #FFFFFF !important;
+        font-weight: 700 !important;
+    }
+
+    button.primary:hover, .submit-btn:hover, button[type="submit"]:hover {
+        background: #FF69B4 !important;
+    }
+
+    /* Input fields and textareas */
+    input, textarea, .input-field {
+        border: 3px solid #000000 !important;
+        box-shadow: 2px 2px 0px #000000 !important;
+        background: #FFFFFF !important;
+        border-radius: 10px !important;
+        padding: 12px !important;
+    }
+
+    input:focus, textarea:focus, .input-field:focus {
+        border-color: #E6B8FF !important;
+        box-shadow: 3px 3px 0px #E6B8FF !important;
+        outline: none !important;
+    }
+
+    /* Custom scrollbar with bold styling */
+    ::-webkit-scrollbar {
+        width: 14px;
+    }
+
+    ::-webkit-scrollbar-track {
+        background: #80D8E8;
+        border: 2px solid #000000;
+        border-radius: 0px;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background: #FF1493;
+        border: 2px solid #000000;
+        border-radius: 6px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+        background: #FF69B4;
+    }
+
+    /* Headers with playful text shadow */
+    h1, h2, h3, h4 {
+        color: #000000 !important;
+        font-weight: 800 !important;
+        text-shadow: 3px 3px 0px #FFD700 !important;
+    }
+
+    /* Labels and text */
+    label {
+        color: #000000 !important;
+        font-weight: 600 !important;
+    }
+
+    /* Add window chrome feel to main container */
+    .gradio-container::before {
+        content: "";
+        display: block;
+        height: 40px;
+        background: linear-gradient(180deg, #FFFFFF 0%, #F0F0F0 100%);
+        border-bottom: 3px solid #000000;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+
+    /* Flat shadow on all blocks for layered look */
+    .form, .block, .panel {
+        border: 3px solid #000000 !important;
+        box-shadow: 4px 4px 0px #000000 !important;
+        background: #FFFFFF !important;
+        border-radius: 12px !important;
+    }
+
+    /* Subtle float animation for messages */
+    @keyframes float {
+        0%, 100% { transform: translateY(0px); }
+        50% { transform: translateY(-3px); }
+    }
+
+    .message {
+        animation: float 4s ease-in-out infinite;
+    }
+
+    /* Prevent animation on hover for better UX */
+    .message:hover {
+        animation: none;
+    }
+    """
+
+    demo = gr.ChatInterface(
         me.chat,
         type="messages",
+        theme=neo_memphis_theme,
+        css=custom_css,
         examples=[
             "What is your professional background?",
             "What are your key skills?",
             "Tell me about your experience",
             "How can I get in touch with you?"
         ]
-    ).launch()
+    )
+    demo.launch()
