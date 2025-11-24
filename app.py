@@ -161,10 +161,10 @@ def search_qa_database(question):
                 "role": "system",
                 "content": f"""You are a helpful assistant that matches user questions to a database of Q&A pairs.
 Given a user's question and a database of Q&A pairs, determine if there's a semantically similar question in the database.
-If there is a good match (the question is asking about the same topic, even if worded differently), respond with:
+If there is a good match (the question is asking about the same topic, even if worded differently), respond with JSON in this format:
 {{"found": true, "answer": "<the answer from the database>"}}
 
-If there is no good match, respond with:
+If there is no good match, respond with JSON in this format:
 {{"found": false, "answer": null}}
 
 Only match questions that are truly asking about the same information. Don't match if the topics are different.
