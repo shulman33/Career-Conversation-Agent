@@ -449,15 +449,28 @@ Here's the information about {self.name}:"
         updated_system_prompt += f"## Your attempted answer:\n{reply}\n\n"
         updated_system_prompt += f"## Reason for rejection:\n{feedback}\n\n"
         messages = [{"role": "system", "content": updated_system_prompt}] + history + [{"role": "user", "content": message}]
-        response = self.openai.chat.completions.create(model="gpt-4o-mini", messages=messages, tools=tools)
-        return response.choices[0].message.content
+
+        # Stream the rerun response
+        stream = self.openai.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=messages,
+            tools=tools,
+            stream=True
+        )
+
+        partial_reply = ""
+        for chunk in stream:
+            if chunk.choices[0].delta.content:
+                partial_reply += chunk.choices[0].delta.content
+                yield partial_reply
 
     def chat(self, message, history):
         messages = [{"role": "system", "content": self.system_prompt()}] + history + [{"role": "user", "content": message}]
-        done = False
         max_retries = 1
         retry_count = 0
 
+        # Phase 1: Handle tool calls (non-streaming)
+        done = False
         while not done:
             response = self.openai.chat.completions.create(model="gpt-4o-mini", messages=messages, tools=tools)
             if response.choices[0].finish_reason=="tool_calls":
@@ -469,10 +482,21 @@ Here's the information about {self.name}:"
             else:
                 done = True
 
-        reply = response.choices[0].message.content
+        # Phase 2: Stream final response
+        stream = self.openai.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=messages,
+            stream=True
+        )
 
-        # Evaluate the response
-        evaluation = self.evaluate(reply, message, history)
+        partial_reply = ""
+        for chunk in stream:
+            if chunk.choices[0].delta.content:
+                partial_reply += chunk.choices[0].delta.content
+                yield partial_reply
+
+        # Phase 3: Evaluate complete response
+        evaluation = self.evaluate(partial_reply, message, history)
 
         if evaluation.is_acceptable:
             print("✓ Passed evaluation - returning reply")
@@ -480,19 +504,11 @@ Here's the information about {self.name}:"
             print(f"✗ Failed evaluation: {evaluation.feedback}")
             if retry_count < max_retries:
                 print(f"  Retrying... (attempt {retry_count + 1}/{max_retries})")
-                reply = self.rerun(reply, message, history, evaluation.feedback)
-                retry_count += 1
-                # Re-evaluate the rerun response
-                evaluation = self.evaluate(reply, message, history)
-                if evaluation.is_acceptable:
-                    print("✓ Rerun passed evaluation")
-                else:
-                    print(f"✗ Rerun still failed: {evaluation.feedback}")
-                    print("  Returning rerun response anyway (max retries reached)")
+                # Rerun and stream the retry response
+                yield from self.rerun(partial_reply, message, history, evaluation.feedback)
             else:
                 print("  Max retries reached - returning response anyway")
-
-        return reply
+                yield partial_reply
 
 
 if __name__ == "__main__":
@@ -503,40 +519,37 @@ if __name__ == "__main__":
         primary_hue=gr.themes.colors.pink,      # Hot pink for interactive elements
         secondary_hue=gr.themes.colors.yellow,  # Sunshine yellow for accents
         neutral_hue=gr.themes.colors.cyan,      # Bright cyan for backgrounds
-        spacing_size=gr.themes.sizes.spacing_lg,
+        spacing_size=gr.themes.sizes.spacing_sm,
         radius_size=gr.themes.sizes.radius_md,
         text_size=gr.themes.sizes.text_md,
         font=gr.themes.GoogleFont("Poppins"),
         font_mono=gr.themes.GoogleFont("IBM Plex Mono")
     )
 
-    # Custom CSS for Neo-Memphis styling
+    # Custom CSS for Neo-Memphis styling with optimized spacing
     custom_css = """
-    /* Grid background pattern on main container */
+    /* Clean background without grid pattern */
     body, .gradio-container {
-        background:
-            linear-gradient(90deg, rgba(0, 0, 0, 0.05) 1px, transparent 1px),
-            linear-gradient(rgba(0, 0, 0, 0.05) 1px, transparent 1px);
-        background-size: 40px 40px;
         background-color: #80D8E8 !important;
     }
 
-    /* Main chat container with white background and bold border */
+    /* Main chat container with reduced border and shadow */
     .contain, .chatbot {
         background: #FFFFFF !important;
-        border: 4px solid #000000 !important;
-        box-shadow: 6px 6px 0px #000000 !important;
+        border: 2px solid #000000 !important;
+        box-shadow: 2px 2px 0px #000000 !important;
         border-radius: 12px !important;
+        margin: 0 !important;
     }
 
-    /* Chat message bubbles with bold outlines */
+    /* Chat message bubbles with optimized spacing */
     .message-row, .message {
-        border: 3px solid #000000 !important;
-        box-shadow: 4px 4px 0px #000000 !important;
+        border: 2px solid #000000 !important;
+        box-shadow: 2px 2px 0px #000000 !important;
         background: #FFFFFF !important;
         border-radius: 12px !important;
-        padding: 16px !important;
-        margin: 8px 0 !important;
+        padding: 10px !important;
+        margin: 4px 0 !important;
     }
 
     /* User messages with coral/peach accent */
@@ -550,18 +563,18 @@ if __name__ == "__main__":
         background: #FFFFFF !important;
     }
 
-    /* All buttons get bold borders */
+    /* All buttons with optimized borders */
     button {
-        border: 3px solid #000000 !important;
+        border: 2px solid #000000 !important;
         font-weight: 600 !important;
         transition: all 0.2s ease !important;
-        box-shadow: 3px 3px 0px #000000 !important;
+        box-shadow: 2px 2px 0px #000000 !important;
         border-radius: 10px !important;
     }
 
     button:hover {
-        transform: translate(-2px, -2px) !important;
-        box-shadow: 5px 5px 0px #000000 !important;
+        transform: translate(-1px, -1px) !important;
+        box-shadow: 3px 3px 0px #000000 !important;
     }
 
     /* Example buttons with sunshine yellow */
@@ -585,18 +598,18 @@ if __name__ == "__main__":
         background: #FF69B4 !important;
     }
 
-    /* Input fields and textareas */
+    /* Input fields and textareas with compact padding */
     input, textarea, .input-field {
-        border: 3px solid #000000 !important;
+        border: 2px solid #000000 !important;
         box-shadow: 2px 2px 0px #000000 !important;
         background: #FFFFFF !important;
         border-radius: 10px !important;
-        padding: 12px !important;
+        padding: 8px !important;
     }
 
     input:focus, textarea:focus, .input-field:focus {
         border-color: #E6B8FF !important;
-        box-shadow: 3px 3px 0px #E6B8FF !important;
+        box-shadow: 2px 2px 0px #E6B8FF !important;
         outline: none !important;
     }
 
@@ -621,11 +634,11 @@ if __name__ == "__main__":
         background: #FF69B4;
     }
 
-    /* Headers with playful text shadow */
+    /* Headers with subtle text shadow */
     h1, h2, h3, h4 {
         color: #000000 !important;
         font-weight: 800 !important;
-        text-shadow: 3px 3px 0px #FFD700 !important;
+        text-shadow: 2px 2px 0px #FFD700 !important;
     }
 
     /* Labels and text */
@@ -634,39 +647,12 @@ if __name__ == "__main__":
         font-weight: 600 !important;
     }
 
-    /* Add window chrome feel to main container */
-    .gradio-container::before {
-        content: "";
-        display: block;
-        height: 40px;
-        background: linear-gradient(180deg, #FFFFFF 0%, #F0F0F0 100%);
-        border-bottom: 3px solid #000000;
-        position: sticky;
-        top: 0;
-        z-index: 10;
-    }
-
     /* Flat shadow on all blocks for layered look */
     .form, .block, .panel {
-        border: 3px solid #000000 !important;
-        box-shadow: 4px 4px 0px #000000 !important;
+        border: 2px solid #000000 !important;
+        box-shadow: 2px 2px 0px #000000 !important;
         background: #FFFFFF !important;
         border-radius: 12px !important;
-    }
-
-    /* Subtle float animation for messages */
-    @keyframes float {
-        0%, 100% { transform: translateY(0px); }
-        50% { transform: translateY(-3px); }
-    }
-
-    .message {
-        animation: float 4s ease-in-out infinite;
-    }
-
-    /* Prevent animation on hover for better UX */
-    .message:hover {
-        animation: none;
     }
     """
 
