@@ -2,7 +2,7 @@
 .env
 
 # Jupyter notebook
-4_lab4.ipynb
+*.ipynb
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -52,3 +52,6 @@ dmypy.json
 
 # Ruff
 .ruff_cache/
+
+# The deep_research directory
+deep_research/
