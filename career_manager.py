@@ -1,4 +1,3 @@
-from pypdf import PdfReader
 from agents import Runner, trace, InputGuardrailTripwireTriggered
 from openai.types.responses import ResponseTextDeltaEvent
 from database import seed_database
@@ -11,23 +10,6 @@ class CareerManager:
     def __init__(self):
         self.name = "Sam Shulman"
 
-        # Load PDF content
-        linkedin_reader = PdfReader("me/linkedin.pdf")
-        resume_reader = PdfReader("me/resume.pdf")
-
-        self.linkedin = ""
-        self.resume = ""
-
-        for page in resume_reader.pages:
-            text = page.extract_text()
-            if text:
-                self.resume += text
-
-        for page in linkedin_reader.pages:
-            text = page.extract_text()
-            if text:
-                self.linkedin += text
-
         with open("me/summary.md", "r", encoding="utf-8") as f:
             self.summary = f.read()
 
@@ -37,9 +19,7 @@ class CareerManager:
         # Create the main career agent
         self.agent = create_career_agent(
             name=self.name,
-            summary=self.summary,
-            linkedin=self.linkedin,
-            resume=self.resume
+            summary=self.summary
         )
 
     async def run(self, message: str, history: list):

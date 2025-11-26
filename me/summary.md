@@ -239,7 +239,7 @@ I believe in:
 ### Tell me about yourself outside of work
 I'm a chill guy who loves hanging out with friends and trying new things. I'm a huge sports fan—die-hard Jets, Yankees, and Knicks supporter (yes, I know how to handle disappointment!). I love watching games and the camaraderie that comes with being a fan.
 
-I'm married to my beautiful wife Noa, so wedding planning has been a big part of my life lately. Outside of that, I genuinely enjoy my side projects—they don't feel like work to me, they're how I relax and have fun.
+I'm married to my beautiful wife Noa. Outside of that, I genuinely enjoy my side projects—they don't feel like work to me, they're how I relax and have fun.
 
 I value work-life balance and believe that being well-rounded makes me a better engineer.
 
