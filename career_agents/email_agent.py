@@ -75,13 +75,9 @@ async def send_contact_email(email: str, name: str = "Visitor", notes: str = "",
     # Send via SendGrid
     try:
         sg = sendgrid.SendGridAPIClient(api_key=os.environ.get('SENDGRID_API_KEY'))
-        print(f"API Key: {os.environ.get('SENDGRID_API_KEY')}")
         from_email = Email(os.environ.get('SENDGRID_FROM_EMAIL'))
         to_email = To(os.environ.get('SENDGRID_TO_EMAIL'))
-        print(f"To Email: {to_email.email}")
-        print(f"From Email: {from_email.email}")
         subject = f"New Contact: {summary.user_name} ({summary.user_email})"
-        print(f"Subject: {subject}")
         content = Content("text/html", html_content)
         mail = Mail(from_email, to_email, subject, content).get()
         response = sg.client.mail.send.post(request_body=mail)
@@ -94,7 +90,6 @@ async def send_contact_email(email: str, name: str = "Visitor", notes: str = "",
         }
     except Exception as e:
         error_msg = str(e)
-        print(f"SendGrid error: {error_msg}")
 
         if "403" in error_msg or "Forbidden" in error_msg:
             return {
