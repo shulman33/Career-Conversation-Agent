@@ -59,13 +59,19 @@ class CareerManager:
                     input=input_items,
                 )
 
-                # Add assistant message placeholder
-                history = history + [{"role": "assistant", "content": ""}]
+                # Add assistant message placeholder with thinking indicator
+                history = history + [{"role": "assistant", "content": "..."}]
+                yield history
 
+                first_token = True
                 async for event in result.stream_events():
                     if event.type == "raw_response_event":
                         if isinstance(event.data, ResponseTextDeltaEvent):
-                            history[-1]["content"] += event.data.delta
+                            if first_token:
+                                history[-1]["content"] = event.data.delta
+                                first_token = False
+                            else:
+                                history[-1]["content"] += event.data.delta
                             yield history
 
         except InputGuardrailTripwireTriggered as e:

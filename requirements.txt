@@ -1,6 +1,8 @@
 python-dotenv
 openai
+openai-agents
 requests
 pypdf
 gradio
 pydantic
+sendgrid

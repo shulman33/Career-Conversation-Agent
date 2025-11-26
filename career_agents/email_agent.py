@@ -20,12 +20,12 @@ Be concise but comprehensive. Focus on what would be useful for follow-up.""",
 async def send_contact_email(email: str, name: str = "Visitor", notes: str = "", conversation_history: str = "") -> dict:
     """Send an email when a user provides their contact information.
     This sends a professional email to Sam with the user's details, a conversation summary, and full transcript.
-    PROACTIVELY offer this service to users - suggest that you can send Sam an email on their behalf.
+    PROACTIVELY offer this service to users - suggest that you can send Human Sam an email on their behalf.
     The user MUST provide their email address so Sam knows who to respond to.
 
     Args:
         email: The user's email address (REQUIRED - ask for it before calling this tool)
-        name: The user's name if provided
+        name: The user's name if provided (Recommended - ask for it before calling this tool)
         notes: Any additional notes about the conversation
         conversation_history: The full conversation transcript
     """

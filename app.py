@@ -7,8 +7,17 @@ from career_manager import CareerManager
 
 async def respond(message: str, history: list):
     """Async generator for Gradio to call directly."""
+    if not message or not message.strip():
+        yield history
+        return
     async for updated_history in manager.run(message, history):
         yield updated_history
+
+
+def handle_example_select(evt: gr.SelectData, history: list):
+    """Handle when user clicks an example in the chatbot."""
+    message = evt.value.get("text", "") if evt.value else ""
+    return message, history
 
 
 if __name__ == "__main__":
@@ -16,26 +25,15 @@ if __name__ == "__main__":
 
     with gr.Blocks(
         theme=gr.themes.Default(primary_hue="sky"),
-        fill_height=True,
-        fill_width=True,
-        css="""
-            .gradio-container { padding: 0 !important; }
-            #chatbot { flex-grow: 1; }
-        """
     ) as demo:
         chatbot = gr.Chatbot(
             type="messages",
-            height="100%",
-            scale=1,
-            container=False,
+            height="calc(100vh - 120px)",
             elem_id="chatbot",
-            resizable=False,
-            placeholder="Ask me anything about Sam's career, skills, or experience!",
             examples=[
-                {"text": "How did you make this?"},
+                {"text": "How did you make this chatbot?"},
                 {"text": "What is your professional background?"},
                 {"text": "What are your key skills?"},
-                {"text": "Tell me about your experience"},
                 {"text": "How can I get in touch with you?"},
             ]
         )
@@ -55,5 +53,9 @@ if __name__ == "__main__":
         submit_btn.click(respond, [msg, chatbot], chatbot).then(
             lambda: "", outputs=msg
         )
+
+        chatbot.example_select(handle_example_select, [chatbot], [msg, chatbot]).then(
+            respond, [msg, chatbot], chatbot
+        ).then(lambda: "", outputs=msg)
 
     demo.launch()
