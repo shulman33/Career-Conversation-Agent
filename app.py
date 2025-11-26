@@ -31,10 +31,10 @@ if __name__ == "__main__":
             height="calc(100vh - 120px)",
             elem_id="chatbot",
             examples=[
-                {"text": "How did you make this chatbot?"},
-                {"text": "What is your professional background?"},
-                {"text": "What are your key skills?"},
-                {"text": "How can I get in touch with you?"},
+                {"text": "Tell me about yourself"},
+                {"text": "What side projects are you working on?"},
+                {"text": "What's your experience with AWS?"},
+                {"text": "Are you interested in startup opportunities?"},
             ]
         )
 
