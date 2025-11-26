@@ -1,7 +1,7 @@
 import json
 from openai import OpenAI
 from agents import function_tool
-from database import fetch_all_qa, insert_qa, update_qa
+from database import fetch_all_qa, insert_qa, update_qa, record_unknown
 
 
 @function_tool
@@ -12,10 +12,13 @@ def record_unknown_question(question: str) -> dict:
     Args:
         question: The question that couldn't be answered
     """
-    placeholder_answer = "ANSWER NEEDED - Please update this entry in the database"
-    insert_qa(question, placeholder_answer)
-    print(f"Question needs answer: {question}")
-    return {"recorded": "ok", "added_to_database": True, "message": "Question recorded for Sam to answer later"}
+    result = record_unknown(question)
+    print(f"Unknown question recorded: {question} (new: {result['is_new']})")
+    return {
+        "recorded": True,
+        "is_new_question": result["is_new"],
+        "message": "Question recorded for Sam to review and answer later"
+    }
 
 
 @function_tool
@@ -32,13 +35,7 @@ def search_qa_database(question: str) -> dict:
     if not qa_pairs:
         return {"found": False, "answer": None, "message": "Database is empty"}
 
-    # Filter out questions with placeholder answers
-    answered_qa_pairs = [qa for qa in qa_pairs if "ANSWER NEEDED" not in qa['answer']]
-
-    if not answered_qa_pairs:
-        return {"found": False, "answer": None, "message": "No answered questions in database yet"}
-
-    context = "\n\n".join([f"Q: {qa['question']}\nA: {qa['answer']}" for qa in answered_qa_pairs])
+    context = "\n\n".join([f"Q: {qa['question']}\nA: {qa['answer']}" for qa in qa_pairs])
 
     openai_client = OpenAI()
     response = openai_client.chat.completions.create(
@@ -94,9 +91,6 @@ def list_recent_qa(limit: int = 5) -> dict:
     """
     qa_pairs = fetch_all_qa()
     recent = qa_pairs[:limit]
-
-    for qa in recent:
-        qa['needs_answer'] = "ANSWER NEEDED" in qa['answer']
 
     return {
         "count": len(recent),

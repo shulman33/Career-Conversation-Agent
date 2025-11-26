@@ -1,5 +1,5 @@
 import sqlite3
-from typing import List, Dict
+from typing import List, Dict, Optional
 
 DB_PATH = "me/qa_database.db"
 
@@ -8,6 +8,8 @@ def init_database():
     """Initialize the Q&A database if it doesn't exist."""
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
+
+    # Main Q&A table for answered questions only
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS qa (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -16,6 +18,19 @@ def init_database():
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     """)
+
+    # Separate table for unknown/unanswered questions
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS unknown_questions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            question TEXT NOT NULL UNIQUE,
+            ask_count INTEGER DEFAULT 1,
+            dismissed INTEGER DEFAULT 0,
+            first_asked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            last_asked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
     conn.commit()
     conn.close()
 
@@ -55,6 +70,133 @@ def update_qa(question: str, new_answer: str) -> bool:
             SELECT id FROM qa WHERE question = ? ORDER BY created_at DESC LIMIT 1
         )
     """, (new_answer, question, question))
+
+    rows_affected = cursor.rowcount
+    conn.commit()
+    conn.close()
+    return rows_affected > 0
+
+
+# ============ Unknown Questions Management ============
+
+def record_unknown(question: str) -> Dict:
+    """Record an unknown question. Increments count if already exists."""
+    init_database()
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+
+    # Try to increment existing question's count
+    cursor.execute("""
+        UPDATE unknown_questions
+        SET ask_count = ask_count + 1,
+            last_asked_at = CURRENT_TIMESTAMP
+        WHERE question = ? AND dismissed = 0
+    """, (question,))
+
+    if cursor.rowcount == 0:
+        # Question doesn't exist, insert new
+        cursor.execute("""
+            INSERT OR IGNORE INTO unknown_questions (question)
+            VALUES (?)
+        """, (question,))
+        is_new = cursor.rowcount > 0
+    else:
+        is_new = False
+
+    conn.commit()
+    conn.close()
+
+    return {"is_new": is_new, "question": question}
+
+
+def fetch_unknown_questions(include_dismissed: bool = False) -> List[Dict]:
+    """Fetch unknown questions, ordered by ask count (most asked first)."""
+    init_database()
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+
+    if include_dismissed:
+        cursor.execute("""
+            SELECT id, question, ask_count, dismissed, first_asked_at, last_asked_at
+            FROM unknown_questions
+            ORDER BY ask_count DESC, last_asked_at DESC
+        """)
+    else:
+        cursor.execute("""
+            SELECT id, question, ask_count, dismissed, first_asked_at, last_asked_at
+            FROM unknown_questions
+            WHERE dismissed = 0
+            ORDER BY ask_count DESC, last_asked_at DESC
+        """)
+
+    rows = cursor.fetchall()
+    conn.close()
+
+    return [
+        {
+            "id": row[0],
+            "question": row[1],
+            "ask_count": row[2],
+            "dismissed": bool(row[3]),
+            "first_asked_at": row[4],
+            "last_asked_at": row[5]
+        }
+        for row in rows
+    ]
+
+
+def dismiss_unknown_question(question_id: int) -> bool:
+    """Mark an unknown question as dismissed (irrelevant)."""
+    init_database()
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        UPDATE unknown_questions
+        SET dismissed = 1
+        WHERE id = ?
+    """, (question_id,))
+
+    rows_affected = cursor.rowcount
+    conn.commit()
+    conn.close()
+    return rows_affected > 0
+
+
+def answer_unknown_question(question_id: int, answer: str) -> bool:
+    """Move an unknown question to the main QA table with an answer."""
+    init_database()
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+
+    # Get the question text
+    cursor.execute("SELECT question FROM unknown_questions WHERE id = ?", (question_id,))
+    row = cursor.fetchone()
+
+    if not row:
+        conn.close()
+        return False
+
+    question = row[0]
+
+    # Add to main QA table
+    cursor.execute("INSERT INTO qa (question, answer) VALUES (?, ?)", (question, answer))
+
+    # Remove from unknown questions
+    cursor.execute("DELETE FROM unknown_questions WHERE id = ?", (question_id,))
+
+    conn.commit()
+    conn.close()
+    return True
+
+
+def delete_qa(question: str) -> bool:
+    """Delete a Q&A pair from the database."""
+    init_database()
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+
+    cursor.execute("DELETE FROM qa WHERE question = ?", (question,))
 
     rows_affected = cursor.rowcount
     conn.commit()
